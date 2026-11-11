@@ -10,14 +10,14 @@ OpenCode에는 이 기능이 없습니다. `opencode.json`의 `instructions`에 
 
 ## Quickstart
 
-1. `opencode.json`에 플러그인을 등록합니다.
+1. 플러그인을 빌드하고 OpenCode에 설치합니다.
 
-   ```json
-   {
-     "$schema": "https://opencode.ai/config.json",
-     "plugin": ["opencode-conditional-instructions"]
-   }
+   ```bash
+   npm install
+   npm run opencode:install
    ```
+
+   `opencode debug paths`로 OpenCode의 설정 디렉터리(기본 `~/.config/opencode`)를 찾아 `plugins/conditional-instructions.js`로 복사합니다. OpenCode가 이 디렉터리의 플러그인을 자동으로 로드하므로 `opencode.json`은 고치지 않아도 됩니다. 제거하려면 `npm run opencode:uninstall`을 실행합니다.
 
 2. 프로젝트에 지침 파일을 추가합니다.
 

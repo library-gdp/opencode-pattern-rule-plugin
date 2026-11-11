@@ -24,6 +24,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:bundle": "node scripts/opencode-install.mjs build",
+    "opencode:install": "node scripts/opencode-install.mjs install",
+    "opencode:uninstall": "node scripts/opencode-install.mjs uninstall",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
@@ -37,6 +40,7 @@
     "@opencode-ai/plugin": "^1.19.5",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^5.1.0",
+    "esbuild": "^0.28.2",
     "testcontainers": "^12.2.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
