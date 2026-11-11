@@ -37,6 +37,8 @@ OpenCode에는 이 기능이 없습니다.
 
 플러그인 초기화 인자 `PluginInput`에는 `directory`, `worktree`, `project`, `client`, `$`가 있습니다. 프로젝트 루트를 알 수 있으므로 상대 경로 매칭이 가능합니다.
 
+`@opencode-ai/sdk`의 `Session` 타입에도 `directory` 필드가 있습니다. 세션마다 작업 디렉터리를 알 수 있으므로 세션 시작 시점의 디렉터리 매칭(§6.3)도 가능합니다.
+
 **결론: 구현 가능합니다.** 핵심은 `tool.execute.after`에서 도구가 다룬 파일 경로를 뽑아내고, 매칭된 규칙을 도구 결과 뒤에 덧붙이는 것입니다.
 
 > 참고: 최신 OpenCode 문서는 V2 API(`Plugin.define`, `ctx.tool.hook("execute.after")`, `ctx.session.instructions.entry.put()`)를 설명합니다. `instructions.entry`는 이런 용도를 위한 공식 수단으로 보이지만, 1.19.5의 `dist/v2` 타입에는 아직 없습니다. 그래서 V1 hook으로 구현하고, 매칭 로직을 hook과 분리해 두었다가 나중에 V2 adapter를 추가합니다.
@@ -59,6 +61,7 @@ paths:
 - `paths`는 목록(YAML list) 또는 쉼표로 구분한 문자열 모두 허용합니다.
 - `{ts,tsx}` 같은 중괄호 확장을 지원합니다.
 - `paths`가 없으면 **항상 적용** 규칙입니다.
+- `sessionStart: false`를 적으면 세션 시작 디렉터리 매칭(§6.3)에서 제외합니다. 기본값은 `true`입니다.
 - 확장 필드는 나중에 추가합니다(§9 참고).
 
 ### 탐색 위치
@@ -99,6 +102,19 @@ tool 실행 완료
        └─ state에 기록
 ```
 
+세션 시작 디렉터리 매칭(§6.3)은 별도 흐름입니다.
+
+```
+LLM 요청 직전
+  └─ experimental.chat.system.transform(input, output)
+       ├─ input.sessionID 없으면 종료
+       ├─ 세션 디렉터리 조회 (캐시 → 없으면 client.session.get)
+       ├─ worktree 기준 상대 경로로 변환 (밖이면 무시)
+       ├─ matcher.matchDirectory()로 일치한 규칙 선택 (세션당 1회 계산 후 고정)
+       ├─ output.system.push(render(일치한 규칙))
+       └─ state에 기록 (이후 파일 접근 시 중복 주입 방지)
+```
+
 ## 5. 모듈 상세
 
 ### 5.1 loader
@@ -115,6 +131,7 @@ tool 실행 완료
 - 결과가 `..`로 시작하면(프로젝트 밖) 매칭하지 않습니다.
 - Windows 경로 구분자는 `/`로 통일합니다.
 - 규칙별로 `picomatch(paths, { dot: true })`를 미리 컴파일해 둡니다.
+- 디렉터리 매칭용으로 `picomatch.scan(glob).base`로 각 glob의 고정 접두부(base)를 미리 구해 둡니다(§6.3).
 
 ### 5.3 extract
 
@@ -175,6 +192,41 @@ The following conditional instructions apply to files you just accessed (src/api
 - 방식 A일 때: `experimental.chat.system.transform`에 고정으로 넣습니다. 내용이 세션 내내 바뀌지 않으므로 cache 문제가 없습니다.
 - 대안: 사용자에게 `opencode.json`의 `instructions`에 등록하도록 안내합니다. 실험적 hook을 피하고 싶을 때 씁니다.
 
+### 6.3 세션 시작 디렉터리 매칭
+
+OpenCode를 하위 디렉터리에서 실행하면, 그 디렉터리를 대상으로 하는 조건부 지침을 파일 접근 전인 세션 시작 시점부터 적용합니다.
+
+**세션 디렉터리 구하기**
+
+- `event`의 `session.created`에서 받은 `Session.directory`를 `Map<sessionID, directory>`에 캐시합니다.
+- 캐시에 없으면 `client.session.get()`으로 조회하고, 그래도 실패하면 `PluginInput.directory`를 씁니다.
+- `path.relative(worktree, directory)`로 상대 경로를 구합니다. worktree 밖이면 매칭하지 않습니다.
+
+**매칭 규칙**
+
+`paths:`는 파일용 glob이므로 디렉터리를 그대로 대보면 맞지 않습니다. 그래서 다음 조건을 모두 만족하는 glob이 하나라도 있으면 적용합니다.
+
+1. glob의 고정 접두부(base)가 비어 있지 않다.
+2. 세션 디렉터리가 base와 같거나 base 아래에 있다.
+
+| 세션 디렉터리 | `paths:` | 적용 | 이유 |
+|---|---|---|---|
+| `src/api` | `src/api/**/*.ts` | O | base와 같음 |
+| `src/api/v1` | `src/api/**/*.ts` | O | base 아래 |
+| `src` | `src/api/**/*.ts` | X | 더 넓은 범위에서 작업 중. 실제 파일 접근 시 적용 |
+| (루트) | `src/api/**/*.ts` | X | 위와 같음 |
+| 어디든 | `**/*.ts` | X | base가 비어 있음. 허용하면 사실상 항상 적용 지침이 됨 |
+
+조건 1이 중요합니다. 이 조건이 없으면 루트에서 실행할 때 `**/*.ts` 같은 넓은 지침이 모두 켜져서 조건부로 만든 의미가 사라집니다.
+
+**주입**
+
+- 방식 A·B와 관계없이 `experimental.chat.system.transform`으로 system prompt에 넣습니다. 파일 접근이 없으니 덧붙일 도구 결과가 없기 때문입니다.
+- 세션 안에서 디렉터리는 바뀌지 않으므로, 일치 결과를 세션당 한 번 계산해 고정합니다. system prompt가 바뀌지 않아 prompt cache 문제가 없습니다.
+- 적용한 지침은 state에 기록해서, 이후 같은 지침 대상 파일에 접근해도 다시 주입하지 않습니다.
+- system prompt에 있으므로 compaction 후에도 유지됩니다. §6.1의 state 초기화 대상에서 제외합니다.
+- 지침 단위로 끄려면 frontmatter에 `sessionStart: false`를 적습니다.
+
 ## 7. 설정
 
 `opencode.json`의 plugin 옵션으로 받습니다.
@@ -186,6 +238,7 @@ The following conditional instructions apply to files you just accessed (src/api
       "mode": "tool-output",          // "tool-output" | "system"
       "globalConditionalInstructions": true, // ~/.config/opencode/conditional-instructions/ 탐색
       "matchDirectoryTools": false,   // list/glob/grep의 path도 매칭
+      "matchSessionDirectory": true,  // 세션 시작 디렉터리로 매칭 (§6.3)
       "bashExtraction": true,         // bash의 cat/head 등에서 경로 추출
       "maxConditionalInstructionBytes": 8192,
       "extraTools": [                 // 사용자 정의 도구 매핑
@@ -203,6 +256,7 @@ The following conditional instructions apply to files you just accessed (src/api
 - **실험적 hook:** `experimental.*`는 바뀔 수 있습니다. 지원 버전을 `peerDependencies`로 명시하고 adapter로 감쌉니다.
 - **bash 추출의 한계:** 셸 문법 전체를 해석하지 않으므로 리다이렉션, 변수, 서브셸을 통한 접근은 놓칩니다.
 - **MCP 도구:** 인자 이름이 제각각이라 기본으로는 매칭하지 않습니다. `extraTools`로 직접 등록해야 합니다.
+- **세션 시작 디렉터리 매칭의 적용 범위:** OpenCode는 보통 저장소 루트에서 실행하므로, 하위 디렉터리에서 실행하지 않으면 이 기능은 켜지지 않습니다. 또한 실험적 hook인 `experimental.chat.system.transform`에 의존합니다.
 - **도구 결과 크기:** 큰 규칙을 반복해서 붙이면 context가 커집니다. 세션 단위 중복 방지와 `maxConditionalInstructionBytes`로 줄입니다.
 
 ## 9. 확장 아이디어
@@ -216,7 +270,7 @@ The following conditional instructions apply to files you just accessed (src/api
 
 ## 10. 테스트 전략
 
-- **단위 테스트 (bun test):** matcher(glob, 중괄호 확장, dot 파일, 프로젝트 밖 경로), extract(도구별 인자, patch 파싱, bash 명령), loader(frontmatter 형식, 파싱 실패), state(중복, 초기화).
+- **단위 테스트 (bun test):** matcher(glob, 중괄호 확장, dot 파일, 프로젝트 밖 경로, §6.3 표의 디렉터리 매칭 사례), extract(도구별 인자, patch 파싱, bash 명령), loader(frontmatter 형식, 파싱 실패), state(중복, 초기화).
 - **통합 테스트:** fixture 프로젝트에 규칙을 두고, mock `PluginInput`으로 hook을 직접 호출해 `output.output` 변화를 확인합니다.
 - **수동 E2E:** 실제 OpenCode에서 규칙 대상 파일을 읽게 하고, 모델이 규칙을 인지하는지 확인합니다.
 
@@ -226,7 +280,7 @@ The following conditional instructions apply to files you just accessed (src/api
 |---|---|---|
 | 1. PoC | `.opencode/plugins/`에 로깅 플러그인을 두고 `tool.execute.after`의 도구 이름과 인자를 수집 | extract 테이블 확정 |
 | 2. MVP | loader, matcher, extract(read/edit/write), state, 방식 A, compaction 대응 | 경로 규칙이 한 세션에 한 번 주입됨 |
-| 3. 확장 | patch·bash 추출, 방식 B 옵션, 항상 적용 규칙 | 설정 옵션 전체 동작 |
+| 3. 확장 | patch·bash 추출, 방식 B 옵션, 항상 적용 규칙, 세션 시작 디렉터리 매칭 | 설정 옵션 전체 동작 |
 | 4. 배포 | npm 패키지, README, 예제 규칙 | `opencode.json`에 등록만으로 사용 가능 |
 | 5. V2 | `instructions.entry` adapter | OpenCode V2 API 안정화 후 |
 
