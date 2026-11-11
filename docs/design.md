@@ -20,7 +20,7 @@ OpenCode에는 이 기능이 없습니다.
 |---|---|
 | `paths:` glob 기반 조건부 규칙 | MCP 도구 인자 매칭 (기본 비활성) |
 | `paths:` 없는 규칙 = 항상 적용 | 규칙 간 우선순위·충돌 해결 |
-| `.opencode/rules/`, 전역 규칙 | GUI 설정 화면 |
+| `.opencode/conditional-instructions/`, 전역 규칙 | GUI 설정 화면 |
 | 세션 단위 중복 방지, compaction 대응 | |
 
 ## 2. 구현 가능성 검토
@@ -65,8 +65,8 @@ paths:
 
 | 위치 | 기준 디렉터리 | 기본값 |
 |---|---|---|
-| `<worktree>/.opencode/rules/**/*.md` | worktree 루트 | 활성 |
-| `~/.config/opencode/rules/**/*.md` | worktree 루트 | 활성 |
+| `<worktree>/.opencode/conditional-instructions/**/*.md` | worktree 루트 | 활성 |
+| `~/.config/opencode/conditional-instructions/**/*.md` | worktree 루트 | 활성 |
 
 ## 4. 아키텍처
 
@@ -93,7 +93,7 @@ tool 실행 완료
   └─ tool.execute.after(input, output)
        ├─ extract(input.tool, input.args) → 절대 경로 목록
        ├─ 각 경로 → worktree 기준 상대 경로 (밖이면 무시)
-       ├─ loader.rules() 중 matcher가 일치한 규칙
+       ├─ loader.conditionalInstructions() 중 matcher가 일치한 규칙
        ├─ state에서 이 세션에 이미 주입한 규칙 제외
        ├─ output.output += render(새 규칙)
        └─ state에 기록
@@ -132,7 +132,7 @@ tool 실행 완료
 
 ### 5.4 state
 
-- `Map<sessionID, Set<ruleId>>`에 세션마다 주입한 규칙을 기록합니다.
+- `Map<sessionID, Set<conditionalInstructionId>>`에 세션마다 주입한 규칙을 기록합니다.
 - 서브에이전트(task 도구)는 sessionID가 따로 있으므로 자연스럽게 각자 다시 주입됩니다.
 - `event`에서 `session.deleted`를 받으면 해당 항목을 지웁니다.
 - `session.compacted`를 받으면 해당 세션의 기록을 초기화해서 이후 접근 때 다시 주입되게 합니다(§6.1).
@@ -141,9 +141,9 @@ tool 실행 완료
 
 ```
 <system-reminder>
-The following project rules apply to files you just accessed (src/api/user.ts):
+The following conditional instructions apply to files you just accessed (src/api/user.ts):
 
-## Rule: .opencode/rules/api.md
+## Conditional instruction: .opencode/conditional-instructions/api.md
 <규칙 본문, frontmatter 제외>
 </system-reminder>
 ```
@@ -184,10 +184,10 @@ The following project rules apply to files you just accessed (src/api/user.ts):
   "plugin": [
     ["opencode-pattern-rule-plugin", {
       "mode": "tool-output",          // "tool-output" | "system"
-      "globalRules": true,            // ~/.config/opencode/rules/ 탐색
+      "globalConditionalInstructions": true, // ~/.config/opencode/conditional-instructions/ 탐색
       "matchDirectoryTools": false,   // list/glob/grep의 path도 매칭
       "bashExtraction": true,         // bash의 cat/head 등에서 경로 추출
-      "maxRuleBytes": 8192,
+      "maxConditionalInstructionBytes": 8192,
       "extraTools": [                 // 사용자 정의 도구 매핑
         { "tool": "fs_read", "arg": "path" }
       ],
@@ -203,7 +203,7 @@ The following project rules apply to files you just accessed (src/api/user.ts):
 - **실험적 hook:** `experimental.*`는 바뀔 수 있습니다. 지원 버전을 `peerDependencies`로 명시하고 adapter로 감쌉니다.
 - **bash 추출의 한계:** 셸 문법 전체를 해석하지 않으므로 리다이렉션, 변수, 서브셸을 통한 접근은 놓칩니다.
 - **MCP 도구:** 인자 이름이 제각각이라 기본으로는 매칭하지 않습니다. `extraTools`로 직접 등록해야 합니다.
-- **도구 결과 크기:** 큰 규칙을 반복해서 붙이면 context가 커집니다. 세션 단위 중복 방지와 `maxRuleBytes`로 줄입니다.
+- **도구 결과 크기:** 큰 규칙을 반복해서 붙이면 context가 커집니다. 세션 단위 중복 방지와 `maxConditionalInstructionBytes`로 줄입니다.
 
 ## 9. 확장 아이디어
 
