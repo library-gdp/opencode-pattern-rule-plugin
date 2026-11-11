@@ -11,7 +11,6 @@ Claude Code의 `.claude/rules/`는 frontmatter에 `paths:` glob을 적어 두면
 OpenCode에는 이 기능이 없습니다.
 
 - `opencode.json`의 `instructions`에 glob을 쓸 수 있지만, 이것은 **어떤 파일을 불러올지**만 정합니다. 불러온 내용은 항상 system prompt에 들어갑니다.
-- `.claude/rules/` 디렉터리도 인식하지 않습니다.
 
 **목표:** OpenCode 플러그인으로 Claude Code와 같은 방식의 경로 기반 조건부 규칙을 구현합니다.
 
@@ -21,7 +20,7 @@ OpenCode에는 이 기능이 없습니다.
 |---|---|
 | `paths:` glob 기반 조건부 규칙 | MCP 도구 인자 매칭 (기본 비활성) |
 | `paths:` 없는 규칙 = 항상 적용 | 규칙 간 우선순위·충돌 해결 |
-| `.opencode/rules/`, `.claude/rules/`(옵션), 전역 규칙 | GUI 설정 화면 |
+| `.opencode/rules/`, 전역 규칙 | GUI 설정 화면 |
 | 세션 단위 중복 방지, compaction 대응 | |
 
 ## 2. 구현 가능성 검토
@@ -44,7 +43,7 @@ OpenCode에는 이 기능이 없습니다.
 
 ## 3. 규칙 파일 형식
 
-Claude Code와 형식을 맞춰 같은 파일을 양쪽에서 쓸 수 있게 합니다.
+frontmatter 형식은 Claude Code rules를 참고했으며, 규칙 파일은 OpenCode 전용 위치에서만 읽습니다.
 
 ```markdown
 ---
@@ -67,7 +66,6 @@ paths:
 | 위치 | 기준 디렉터리 | 기본값 |
 |---|---|---|
 | `<worktree>/.opencode/rules/**/*.md` | worktree 루트 | 활성 |
-| `<worktree>/.claude/rules/**/*.md` | worktree 루트 | 옵션 (`claudeCompat: true`) |
 | `~/.config/opencode/rules/**/*.md` | worktree 루트 | 활성 |
 
 ## 4. 아키텍처
@@ -186,7 +184,6 @@ The following project rules apply to files you just accessed (src/api/user.ts):
   "plugin": [
     ["opencode-pattern-rule-plugin", {
       "mode": "tool-output",          // "tool-output" | "system"
-      "claudeCompat": true,           // .claude/rules/ 도 탐색
       "globalRules": true,            // ~/.config/opencode/rules/ 탐색
       "matchDirectoryTools": false,   // list/glob/grep의 path도 매칭
       "bashExtraction": true,         // bash의 cat/head 등에서 경로 추출
@@ -229,7 +226,7 @@ The following project rules apply to files you just accessed (src/api/user.ts):
 |---|---|---|
 | 1. PoC | `.opencode/plugins/`에 로깅 플러그인을 두고 `tool.execute.after`의 도구 이름과 인자를 수집 | extract 테이블 확정 |
 | 2. MVP | loader, matcher, extract(read/edit/write), state, 방식 A, compaction 대응 | 경로 규칙이 한 세션에 한 번 주입됨 |
-| 3. 호환·확장 | `.claude/rules/` 호환, patch·bash 추출, 방식 B 옵션, 항상 적용 규칙 | 설정 옵션 전체 동작 |
+| 3. 확장 | patch·bash 추출, 방식 B 옵션, 항상 적용 규칙 | 설정 옵션 전체 동작 |
 | 4. 배포 | npm 패키지, README, 예제 규칙 | `opencode.json`에 등록만으로 사용 가능 |
 | 5. V2 | `instructions.entry` adapter | OpenCode V2 API 안정화 후 |
 
