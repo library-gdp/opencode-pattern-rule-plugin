@@ -50,7 +50,7 @@ Claude Code와 형식을 맞춰 같은 파일을 양쪽에서 쓸 수 있게 합
 ---
 paths:
   - "src/api/**/*.ts"
-  - "src/**/*.{test,spec}.ts"
+  - "src/**/*.{test,spec}.ts"   # 중괄호 확장: *.test.ts 와 *.spec.ts 둘 다 매칭
 ---
 
 # API 규칙
