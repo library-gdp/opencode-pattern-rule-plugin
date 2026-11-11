@@ -98,7 +98,11 @@ compaction 후에도 그 세션에서 적용 중이던 지침이 효력을 잃�
 - **NFR-1. prompt cache 보존:** 지침 주입 때문에 system prompt가 자주 바뀌어 prompt cache가 무효화되지 않도록 합니다.
 - **NFR-2. 장애 격리:** 지침 파일 하나를 파싱하지 못해도 경고만 남기고 나머지는 정상 동작해야 합니다.
 - **NFR-3. context 크기 제한:** 지침 하나의 크기에 상한(기본 8KB, 설정 가능)을 두고, 넘으면 잘라내고 경고합니다.
-- **NFR-4. 설정 가능:** 위의 옵션 항목은 `opencode.json`의 plugin 옵션으로 켜고 끌 수 있어야 합니다.
+- **NFR-4. 설정 가능:** 위의 옵션 항목을 켜고 끌 수 있어야 합니다. 플러그인을 `<config>/plugins/`에 두면 OpenCode가 자동으로 로드하지만 plugin 옵션은 전달하지 않으므로, 다음 순서로 읽습니다. 앞에 있는 값이 우선합니다.
+  1. 환경변수 `CONDITIONAL_INSTRUCTIONS_*`: 실행할 때마다 바꿀 때 씁니다. 예: `CONDITIONAL_INSTRUCTIONS_DISABLE=1 opencode`
+  2. `opencode.json`의 plugin 옵션: `plugin` 배열에 `["…", { … }]` 형태로 등록한 경우
+  3. `<config>/conditional-instructions.json`
+  4. 기본값
 - **NFR-5. 디버깅:** 매칭 과정을 로그로 확인할 수 있는 옵션을 제공합니다.
 
 ### 2.3 범위 제외
