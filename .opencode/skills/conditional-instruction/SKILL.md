@@ -9,11 +9,11 @@ description: conditional instruction 파일(`.opencode/conditional-instructions/
 
 | scope | 디렉터리 |
 |---|---|
-| 프로젝트 | `<worktree>/.opencode/conditional-instructions/` |
+| 프로젝트 | `<OpenCode를 실행한 디렉터리>/.opencode/conditional-instructions/` |
 | 유저 | `~/.config/opencode/conditional-instructions/` (`$XDG_CONFIG_HOME`이 있으면 `$XDG_CONFIG_HOME/opencode/conditional-instructions/`) |
 
 - 디렉터리 아래 모든 `.md` 파일을 읽는다. 하위 디렉터리를 써도 된다.
-- 두 scope 모두 `paths`는 **worktree 루트 기준 상대 경로**로 매칭한다.
+- 두 scope 모두 `paths`는 **OpenCode를 실행한 디렉터리 기준 상대 경로**로 매칭한다. git 저장소 여부는 관계없다.
 - 유저 scope는 플러그인 옵션 `global: false`(또는 `CONDITIONAL_INSTRUCTIONS_GLOBAL=false`)이면 읽지 않는다.
 
 ## 템플릿

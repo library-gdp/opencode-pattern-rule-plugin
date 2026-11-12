@@ -2,11 +2,12 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { type Instruction, parseInstruction } from "./parse.js";
 
-/** `<worktree>/.opencode/` 또는 `<configDir>/` 아래의 지침 디렉터리 이름 */
+/** `<projectDir>/.opencode/` 또는 `<configDir>/` 아래의 지침 디렉터리 이름 */
 export const INSTRUCTIONS_DIR_NAME = "conditional-instructions";
 
 export interface LoadInstructionsInput {
-  worktree: string;
+  /** OpenCode를 실행한 디렉터리 */
+  projectDir: string;
   /** OpenCode user scope 설정 디렉터리 */
   configDir: string;
   /** 전역 지침 위치를 읽을지 여부 */
@@ -25,13 +26,13 @@ export interface LoadInstructionsResult {
  */
 export async function loadInstructions(input: LoadInstructionsInput): Promise<LoadInstructionsResult> {
   const warnings: string[] = [];
-  const roots = [path.join(input.worktree, ".opencode", INSTRUCTIONS_DIR_NAME)];
+  const roots = [path.join(input.projectDir, ".opencode", INSTRUCTIONS_DIR_NAME)];
   if (input.global) roots.push(path.join(input.configDir, INSTRUCTIONS_DIR_NAME));
 
   const instructions: Instruction[] = [];
   for (const root of roots) {
     for (const file of await listMarkdownFiles(root, warnings)) {
-      const source = sourceOf(file, input.worktree);
+      const source = sourceOf(file, input.projectDir);
       try {
         instructions.push(parseInstruction({ source, text: await readFile(file, "utf8") }));
       } catch (error) {
@@ -56,9 +57,9 @@ async function listMarkdownFiles(root: string, warnings: string[]): Promise<stri
     .map((entry) => path.join(root, entry));
 }
 
-/** worktree 안의 파일은 worktree 기준 상대 경로로, 밖의 파일은 절대 경로로 표시합니다. */
-function sourceOf(file: string, worktree: string): string {
-  const relative = path.relative(worktree, file);
+/** 프로젝트 디렉터리 안의 파일은 프로젝트 디렉터리 기준 상대 경로로, 밖의 파일은 절대 경로로 표시합니다. */
+function sourceOf(file: string, projectDir: string): string {
+  const relative = path.relative(projectDir, file);
   if (relative.startsWith("..") || path.isAbsolute(relative)) return file;
   return relative.split(path.sep).join("/");
 }

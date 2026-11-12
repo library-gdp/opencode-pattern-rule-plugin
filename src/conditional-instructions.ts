@@ -8,7 +8,8 @@ import { SessionTracker } from "./session/tracker.js";
 import { extractToolPaths } from "./tool/extract-paths.js";
 
 export interface ConditionalInstructionsInput {
-  worktree: string;
+  /** OpenCode를 실행한 디렉터리. 프로젝트 지침 위치와 경로 매칭의 기준입니다. */
+  projectDir: string;
   /** OpenCode user scope 설정 디렉터리 */
   configDir: string;
   options: Options;
@@ -35,7 +36,7 @@ export interface ConditionalInstructions {
 }
 
 export function createConditionalInstructions(input: ConditionalInstructionsInput): ConditionalInstructions {
-  const { worktree, configDir, options } = input;
+  const { projectDir, configDir, options } = input;
   const log = input.log ?? ((message: string) => console.warn(`[conditional-instructions] ${message}`));
   const debug = (message: string) => {
     if (options.debug) log(message);
@@ -46,7 +47,7 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
   const injectedBySession = new Map<string, string[]>();
 
   async function load(): Promise<Instruction[]> {
-    const { instructions, warnings } = await loadInstructions({ worktree, configDir, global: options.global });
+    const { instructions, warnings } = await loadInstructions({ projectDir, configDir, global: options.global });
     warnings.forEach(log);
     return instructions;
   }
@@ -69,7 +70,7 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
     }
 
     if (options.sessionStart) {
-      const directory = toWorktreeRelative(worktree, await input.sessionDirectory(sessionID));
+      const directory = toProjectRelative(projectDir, await input.sessionDirectory(sessionID));
       if (directory !== undefined) {
         for (const instruction of selectForSessionStart(instructions, directory)) {
           if (!tracker.claim(sessionID, instruction.source)) continue;
@@ -83,7 +84,7 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
 
   return {
     async onToolExecuted({ sessionID, tool, args }) {
-      const files = extractToolPaths({ tool, args }, { worktree, options });
+      const files = extractToolPaths({ tool, args }, { projectDir, options });
       if (files.length === 0) return "";
       debug(`${sessionID}: ${tool} → ${files.join(", ")}`);
 
@@ -125,9 +126,9 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
   };
 }
 
-/** worktree 기준 상대 경로(루트는 `""`). worktree 밖이면 undefined */
-function toWorktreeRelative(worktree: string, directory: string): string | undefined {
-  const relative = path.relative(worktree, path.resolve(worktree, directory));
+/** 프로젝트 디렉터리 기준 상대 경로(루트는 `""`). 프로젝트 디렉터리 밖이면 undefined */
+function toProjectRelative(projectDir: string, directory: string): string | undefined {
+  const relative = path.relative(projectDir, path.resolve(projectDir, directory));
   if (relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
   return relative.split(path.sep).join("/");
 }

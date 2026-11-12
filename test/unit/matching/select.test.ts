@@ -14,7 +14,7 @@ const always = instruction("always.md", []);
 
 // FR-3. 파일 접근 시 조건부 적용
 describe("selectForFile", () => {
-  it("worktree 기준 상대 경로와 일치하는 지침을 고른다", () => {
+  it("프로젝트 디렉터리 기준 상대 경로와 일치하는 지침을 고른다", () => {
     // Given
     const instructions = [api, tests, always];
 

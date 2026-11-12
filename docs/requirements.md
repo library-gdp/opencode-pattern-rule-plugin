@@ -22,8 +22,8 @@ OpenCode에는 이 기능이 없습니다.
 
 | 위치 | 경로 기준 |
 |---|---|
-| `<worktree>/.opencode/conditional-instructions/**/*.md` | worktree 루트 |
-| `~/.config/opencode/conditional-instructions/**/*.md` (전역, 옵션으로 끌 수 있음) | worktree 루트 |
+| `<OpenCode를 실행한 디렉터리>/.opencode/conditional-instructions/**/*.md` | OpenCode를 실행한 디렉터리 |
+| `~/.config/opencode/conditional-instructions/**/*.md` (전역, 옵션으로 끌 수 있음) | OpenCode를 실행한 디렉터리 |
 
 OpenCode 전용 위치에서만 읽습니다. `.claude/rules/` 등 다른 도구의 위치는 읽지 않습니다.
 
@@ -56,7 +56,7 @@ paths:
 | `list`, `glob`, `grep` | 탐색 경로 | 비활성 (디렉터리 탐색만으로 켜지면 과도함) |
 | 사용자 정의 도구 (MCP 등) | 설정으로 도구 이름과 경로 인자를 등록한 경우 | 등록 시 활성 |
 
-- 경로는 worktree 기준 상대 경로로 매칭합니다. worktree 밖의 파일은 매칭하지 않습니다.
+- 경로는 OpenCode를 실행한 디렉터리 기준 상대 경로로 매칭합니다. 그 밖의 파일은 매칭하지 않습니다. git 저장소 여부와 worktree는 고려하지 않습니다.
 - 지침에는 출처(지침 파일 경로)와 그 지침을 켠 파일 경로를 함께 표시합니다.
 
 **FR-4. 항상 적용 지침**
@@ -130,7 +130,7 @@ compaction 후에도 그 세션에서 적용 중이던 지침이 효력을 잃�
 | 필드 | 내용 |
 |---|---|
 | `directory` | OpenCode를 실행한 디렉터리 |
-| `worktree` | git worktree 루트 |
+| `worktree` | git worktree 루트 (git 저장소가 아니면 `"/"`). 이 플러그인은 쓰지 않습니다. |
 | `project` | 프로젝트 정보 |
 | `client` | OpenCode SDK 클라이언트 (예: `client.session.get()`) |
 | `$` | Bun shell |
