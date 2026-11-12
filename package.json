@@ -39,10 +39,15 @@
   "devDependencies": {
     "@opencode-ai/plugin": "^1.19.5",
     "@types/node": "^24.19.2",
+    "@types/picomatch": "^4.0.3",
     "@vitest/coverage-v8": "^5.1.0",
     "esbuild": "^0.28.2",
     "testcontainers": "^12.2.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.7",
+    "yaml": "^2.9.1"
   }
 }
