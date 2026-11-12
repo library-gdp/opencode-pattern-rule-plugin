@@ -10,22 +10,22 @@ import { DEFAULT_OPTIONS } from "../../src/options.js";
 //   experimental.chat.system.transform   → systemInstructions() system 배열에 추가 (NFR-1: 세션 동안 고정)
 //   experimental.session.compacting      → compactionContext() context 배열에 추가
 
-let worktree: string;
+let projectDir: string;
 // OpenCode user scope 설정 디렉터리(~/.config/opencode)를 대신하는 임시 디렉터리
 let configDir: string;
 
 beforeEach(() => {
-  worktree = mkdtempSync(path.join(tmpdir(), "ci-worktree-"));
+  projectDir = mkdtempSync(path.join(tmpdir(), "ci-project-"));
   configDir = mkdtempSync(path.join(tmpdir(), "ci-config-"));
 });
 
 afterEach(() => {
-  rmSync(worktree, { recursive: true, force: true });
+  rmSync(projectDir, { recursive: true, force: true });
   rmSync(configDir, { recursive: true, force: true });
 });
 
 function writeInstruction(name: string, text: string): void {
-  const file = path.join(worktree, ".opencode/conditional-instructions", name);
+  const file = path.join(projectDir, ".opencode/conditional-instructions", name);
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, text);
 }
@@ -38,7 +38,7 @@ function writeApiAndAlwaysInstructions(): void {
 
 function create(sessionDirectory: string) {
   return createConditionalInstructions({
-    worktree,
+    projectDir,
     configDir,
     options: { ...DEFAULT_OPTIONS, customTools: {} },
     sessionDirectory: async () => sessionDirectory,
@@ -46,7 +46,7 @@ function create(sessionDirectory: string) {
 }
 
 function readCall(sessionID: string, relativePath: string) {
-  return { sessionID, tool: "read", args: { filePath: path.join(worktree, relativePath) } };
+  return { sessionID, tool: "read", args: { filePath: path.join(projectDir, relativePath) } };
 }
 
 describe("onToolExecuted", () => {
@@ -54,7 +54,7 @@ describe("onToolExecuted", () => {
   it("접근한 파일과 일치하는 지침을 지침을 켠 파일 경로와 함께 돌려준다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(worktree);
+    const engine = create(projectDir);
 
     // When
     const appended = await engine.onToolExecuted(readCall("s1", "src/api/users.ts"));
@@ -68,7 +68,7 @@ describe("onToolExecuted", () => {
   it("같은 세션에서 이미 넣은 지침은 다시 넣지 않는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(worktree);
+    const engine = create(projectDir);
     await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
     // When
@@ -81,10 +81,10 @@ describe("onToolExecuted", () => {
 
 describe("systemInstructions", () => {
   // FR-4
-  it("worktree 루트에서 시작한 세션에는 항상 적용 지침만 넣는다", async () => {
+  it("프로젝트 디렉터리에서 시작한 세션에는 항상 적용 지침만 넣는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(worktree);
+    const engine = create(projectDir);
 
     // When
     const system = (await engine.systemInstructions("s1")).join("\n");
@@ -98,7 +98,7 @@ describe("systemInstructions", () => {
   it("src/api에서 시작한 세션에는 그 디렉터리를 대상으로 하는 지침도 넣는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(path.join(worktree, "src/api"));
+    const engine = create(path.join(projectDir, "src/api"));
 
     // When
     const system = (await engine.systemInstructions("s1")).join("\n");
@@ -111,7 +111,7 @@ describe("systemInstructions", () => {
   it("세션 시작 시 넣은 지침은 파일 접근 때 다시 넣지 않고 system 지침도 바뀌지 않는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(path.join(worktree, "src/api"));
+    const engine = create(path.join(projectDir, "src/api"));
     const before = await engine.systemInstructions("s1");
 
     // When
@@ -128,7 +128,7 @@ describe("compactionContext", () => {
   it("세션에서 파일 접근으로 넣은 지침을 compaction context로 돌려준다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(worktree);
+    const engine = create(projectDir);
     await engine.onToolExecuted({ ...readCall("s1", "src/api/a.ts"), tool: "edit" });
 
     // When

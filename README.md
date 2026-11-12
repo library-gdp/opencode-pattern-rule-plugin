@@ -42,10 +42,10 @@ OpenCode에는 이 기능이 없습니다. `opencode.json`의 `instructions`에 
 
 | 위치 | 범위 |
 |---|---|
-| `<worktree>/.opencode/conditional-instructions/**/*.md` | 프로젝트 |
+| `<OpenCode를 실행한 디렉터리>/.opencode/conditional-instructions/**/*.md` | 프로젝트 |
 | `~/.config/opencode/conditional-instructions/**/*.md` | 전역 |
 
-`paths`는 두 위치 모두 worktree 루트 기준 상대 경로로 매칭합니다.
+`paths`는 두 위치 모두 OpenCode를 실행한 디렉터리 기준 상대 경로로 매칭합니다. git 저장소 여부는 관계없습니다.
 
 ### 파일 형식
 

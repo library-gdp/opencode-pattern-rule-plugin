@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_OPTIONS, type Options } from "../../../src/options.js";
 import { extractToolPaths } from "../../../src/tool/extract-paths.js";
 
-const worktree = "/repo";
+const projectDir = "/repo";
 const defaultOptions: Options = { ...DEFAULT_OPTIONS, customTools: {} };
 
-// FR-3. 도구별로 접근한 파일 경로를 worktree 기준 상대 경로로 뽑는다
+// FR-3. 도구별로 접근한 파일 경로를 프로젝트 디렉터리 기준 상대 경로로 뽑는다
 describe("extractToolPaths", () => {
   it.each(["read", "edit", "write"])("%s 도구의 filePath를 상대 경로로 돌려준다", (tool) => {
     // Given
     const call = { tool, args: { filePath: "/repo/src/a.ts" } };
 
     // When
-    const paths = extractToolPaths(call, { worktree, options: defaultOptions });
+    const paths = extractToolPaths(call, { projectDir, options: defaultOptions });
 
     // Then
     expect(paths).toEqual(["src/a.ts"]);
@@ -33,7 +33,7 @@ describe("extractToolPaths", () => {
     const call = { tool: "apply_patch", args: { patchText } };
 
     // When
-    const paths = extractToolPaths(call, { worktree, options: defaultOptions });
+    const paths = extractToolPaths(call, { projectDir, options: defaultOptions });
 
     // Then
     expect(paths).toEqual(["src/a.ts", "src/b.ts"]);
@@ -46,7 +46,7 @@ describe("extractToolPaths", () => {
       const call = { tool: "bash", args: { command } };
 
       // When
-      const paths = extractToolPaths(call, { worktree, options: defaultOptions });
+      const paths = extractToolPaths(call, { projectDir, options: defaultOptions });
 
       // Then
       expect(paths).toEqual(["src/a.ts"]);
@@ -59,7 +59,7 @@ describe("extractToolPaths", () => {
     const call = { tool: "grep", args: { pattern: "TODO", path: "/repo/src/api" } };
 
     // When
-    const paths = extractToolPaths(call, { worktree, options });
+    const paths = extractToolPaths(call, { projectDir, options });
 
     // Then
     expect(paths).toEqual(["src/api"]);
@@ -71,7 +71,7 @@ describe("extractToolPaths", () => {
     const call = { tool: "mcp_read", args: { file: "src/a.ts", other: "src/b.ts" } };
 
     // When
-    const paths = extractToolPaths(call, { worktree, options });
+    const paths = extractToolPaths(call, { projectDir, options });
 
     // Then
     expect(paths).toEqual(["src/a.ts"]);

@@ -7,7 +7,8 @@ export interface ToolCall {
 }
 
 export interface ExtractToolPathsContext {
-  worktree: string;
+  /** OpenCode를 실행한 디렉터리 */
+  projectDir: string;
   options: Options;
 }
 
@@ -19,10 +20,10 @@ const READ_COMMANDS = new Set(["cat", "head", "tail", "less", "more", "bat"]);
 const OPTIONS_WITH_VALUE = new Set(["-n", "-c"]);
 
 /**
- * 도구 호출이 접근한 파일 경로를 worktree 기준 상대 경로(`/` 구분)로 돌려줍니다 (FR-3).
- * worktree 밖의 경로는 버립니다.
+ * 도구 호출이 접근한 파일 경로를 프로젝트 디렉터리 기준 상대 경로(`/` 구분)로 돌려줍니다 (FR-3).
+ * 프로젝트 디렉터리 밖의 경로는 버립니다.
  */
-export function extractToolPaths(call: ToolCall, { worktree, options }: ExtractToolPathsContext): string[] {
+export function extractToolPaths(call: ToolCall, { projectDir, options }: ExtractToolPathsContext): string[] {
   const args = isRecord(call.args) ? call.args : {};
   const raw: unknown[] = [];
 
@@ -36,7 +37,7 @@ export function extractToolPaths(call: ToolCall, { worktree, options }: ExtractT
   const result: string[] = [];
   for (const value of raw) {
     if (typeof value !== "string" || value === "") continue;
-    const relative = toWorktreeRelative(worktree, value);
+    const relative = toProjectRelative(projectDir, value);
     if (relative !== undefined && !result.includes(relative)) result.push(relative);
   }
   return result;
@@ -67,8 +68,8 @@ function bashReadTarget(command: unknown): string | undefined {
   return operands.length === 1 ? operands[0] : undefined;
 }
 
-function toWorktreeRelative(worktree: string, file: string): string | undefined {
-  const relative = path.relative(worktree, path.resolve(worktree, file));
+function toProjectRelative(projectDir: string, file: string): string | undefined {
+  const relative = path.relative(projectDir, path.resolve(projectDir, file));
   if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
   return relative.split(path.sep).join("/");
 }

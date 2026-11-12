@@ -4,17 +4,17 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadInstructions } from "../../../src/instruction/load.js";
 
-let worktree: string;
+let projectDir: string;
 // OpenCode user scope 설정 디렉터리(~/.config/opencode)를 대신하는 임시 디렉터리
 let configDir: string;
 
 beforeEach(() => {
-  worktree = mkdtempSync(path.join(tmpdir(), "ci-worktree-"));
+  projectDir = mkdtempSync(path.join(tmpdir(), "ci-project-"));
   configDir = mkdtempSync(path.join(tmpdir(), "ci-config-"));
 });
 
 afterEach(() => {
-  rmSync(worktree, { recursive: true, force: true });
+  rmSync(projectDir, { recursive: true, force: true });
   rmSync(configDir, { recursive: true, force: true });
 });
 
@@ -32,12 +32,12 @@ describe("loadInstructions", () => {
   // FR-1. 지침 파일 위치
   it("global: true면 프로젝트와 전역 위치의 .md 파일을 하위 디렉터리까지 읽는다", async () => {
     // Given
-    writeFile(worktree, ".opencode/conditional-instructions/api.md", '---\npaths: "src/api/**"\n---\nAPI');
-    writeFile(worktree, ".opencode/conditional-instructions/nested/db.md", '---\npaths: "src/db/**"\n---\nDB');
+    writeFile(projectDir, ".opencode/conditional-instructions/api.md", '---\npaths: "src/api/**"\n---\nAPI');
+    writeFile(projectDir, ".opencode/conditional-instructions/nested/db.md", '---\npaths: "src/db/**"\n---\nDB');
     writeFile(configDir, "conditional-instructions/global.md", "전역");
 
     // When
-    const { instructions } = await loadInstructions({ worktree, configDir, global: true });
+    const { instructions } = await loadInstructions({ projectDir, configDir, global: true });
 
     // Then
     expect(bodies(instructions)).toEqual(["API", "DB", "전역"]);
@@ -45,11 +45,11 @@ describe("loadInstructions", () => {
 
   it("global: false면 프로젝트 위치의 파일만 읽는다", async () => {
     // Given
-    writeFile(worktree, ".opencode/conditional-instructions/api.md", "API");
+    writeFile(projectDir, ".opencode/conditional-instructions/api.md", "API");
     writeFile(configDir, "conditional-instructions/global.md", "전역");
 
     // When
-    const { instructions } = await loadInstructions({ worktree, configDir, global: false });
+    const { instructions } = await loadInstructions({ projectDir, configDir, global: false });
 
     // Then
     expect(bodies(instructions)).toEqual(["API"]);
@@ -58,13 +58,13 @@ describe("loadInstructions", () => {
   // FR-8. 지침 변경 반영
   it("한 번 읽은 뒤 수정·추가한 지침 파일을 다시 읽으면 반영한다", async () => {
     // Given
-    writeFile(worktree, ".opencode/conditional-instructions/api.md", "v1");
-    await loadInstructions({ worktree, configDir, global: false });
-    writeFile(worktree, ".opencode/conditional-instructions/api.md", "v2");
-    writeFile(worktree, ".opencode/conditional-instructions/new.md", "new");
+    writeFile(projectDir, ".opencode/conditional-instructions/api.md", "v1");
+    await loadInstructions({ projectDir, configDir, global: false });
+    writeFile(projectDir, ".opencode/conditional-instructions/api.md", "v2");
+    writeFile(projectDir, ".opencode/conditional-instructions/new.md", "new");
 
     // When
-    const { instructions } = await loadInstructions({ worktree, configDir, global: false });
+    const { instructions } = await loadInstructions({ projectDir, configDir, global: false });
 
     // Then
     expect(bodies(instructions)).toEqual(["new", "v2"]);
