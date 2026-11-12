@@ -30,7 +30,8 @@ function writeInstruction(name: string, text: string): void {
   writeFileSync(file, text);
 }
 
-function givenInstructions(): void {
+/** src/api/**\/*.ts 지침과 항상 적용 지침을 만든다. */
+function writeApiAndAlwaysInstructions(): void {
   writeInstruction("api.md", '---\npaths:\n  - "src/api/**/*.ts"\n---\nAPI 지침');
   writeInstruction("always.md", "항상 지침");
 }
@@ -50,104 +51,90 @@ function readCall(sessionID: string, relativePath: string) {
 
 describe("onToolExecuted", () => {
   // FR-3
-  describe("given: src/api/**/*.ts 지침이 있고 worktree 루트에서 시작한 세션", () => {
-    beforeEach(givenInstructions);
+  it("접근한 파일과 일치하는 지침을 지침을 켠 파일 경로와 함께 돌려준다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(worktree);
 
-    describe("when: src/api/users.ts를 처음 읽으면", () => {
-      it("then: 지침 본문과 지침을 켠 파일 경로를 덧붙일 텍스트로 돌려준다", async () => {
-        const appended = await create(worktree).onToolExecuted(readCall("s1", "src/api/users.ts"));
+    // When
+    const appended = await engine.onToolExecuted(readCall("s1", "src/api/users.ts"));
 
-        expect(appended).toContain("API 지침");
-        expect(appended).toContain("src/api/users.ts");
-      });
-    });
+    // Then
+    expect(appended).toContain("API 지침");
+    expect(appended).toContain("src/api/users.ts");
   });
 
   // FR-6
-  describe("given: 세션 s1에서 src/api/a.ts를 읽어 지침을 이미 넣었다", () => {
-    let engine: ReturnType<typeof create>;
+  it("같은 세션에서 이미 넣은 지침은 다시 넣지 않는다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(worktree);
+    await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
-    beforeEach(async () => {
-      givenInstructions();
-      engine = create(worktree);
-      await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
-    });
+    // When
+    const appended = await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
-    describe("when: 같은 세션에서 같은 파일을 다시 읽으면", () => {
-      it("then: 아무것도 덧붙이지 않는다", async () => {
-        expect(await engine.onToolExecuted(readCall("s1", "src/api/a.ts"))).toBe("");
-      });
-    });
+    // Then
+    expect(appended).toBe("");
   });
 });
 
 describe("systemInstructions", () => {
-  beforeEach(givenInstructions);
-
   // FR-4
-  describe("given: worktree 루트에서 시작한 세션", () => {
-    describe("when: system 지침을 구하면", () => {
-      it("then: 항상 적용 지침만 넣는다", async () => {
-        const system = (await create(worktree).systemInstructions("s1")).join("\n");
+  it("worktree 루트에서 시작한 세션에는 항상 적용 지침만 넣는다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(worktree);
 
-        expect(system).toContain("항상 지침");
-        expect(system).not.toContain("API 지침");
-      });
-    });
+    // When
+    const system = (await engine.systemInstructions("s1")).join("\n");
+
+    // Then
+    expect(system).toContain("항상 지침");
+    expect(system).not.toContain("API 지침");
   });
 
   // FR-5
-  describe("given: src/api에서 시작한 세션", () => {
-    describe("when: system 지침을 구하면", () => {
-      it("then: 세션 디렉터리를 대상으로 하는 지침도 넣는다", async () => {
-        const system = (await create(path.join(worktree, "src/api")).systemInstructions("s1")).join("\n");
+  it("src/api에서 시작한 세션에는 그 디렉터리를 대상으로 하는 지침도 넣는다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(path.join(worktree, "src/api"));
 
-        expect(system).toContain("API 지침");
-      });
-    });
+    // When
+    const system = (await engine.systemInstructions("s1")).join("\n");
+
+    // Then
+    expect(system).toContain("API 지침");
   });
 
   // FR-6 + NFR-1
-  describe("given: src/api에서 시작해 세션 시작 지침을 이미 넣은 세션", () => {
-    let engine: ReturnType<typeof create>;
-    let before: string[];
+  it("세션 시작 시 넣은 지침은 파일 접근 때 다시 넣지 않고 system 지침도 바뀌지 않는다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(path.join(worktree, "src/api"));
+    const before = await engine.systemInstructions("s1");
 
-    beforeEach(async () => {
-      engine = create(path.join(worktree, "src/api"));
-      before = await engine.systemInstructions("s1");
-    });
+    // When
+    const appended = await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
-    describe("when: src/api/a.ts를 읽으면", () => {
-      it("then: 같은 지침을 도구 결과에 다시 넣지 않는다", async () => {
-        expect(await engine.onToolExecuted(readCall("s1", "src/api/a.ts"))).toBe("");
-      });
-
-      it("then: system 지침은 바뀌지 않는다", async () => {
-        await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
-
-        expect(await engine.systemInstructions("s1")).toEqual(before);
-      });
-    });
+    // Then
+    expect(appended).toBe("");
+    expect(await engine.systemInstructions("s1")).toEqual(before);
   });
 });
 
 describe("compactionContext", () => {
   // FR-7
-  describe("given: 세션 s1에서 src/api/a.ts를 편집해 지침을 넣었다", () => {
-    let engine: ReturnType<typeof create>;
+  it("세션에서 파일 접근으로 넣은 지침을 compaction context로 돌려준다", async () => {
+    // Given
+    writeApiAndAlwaysInstructions();
+    const engine = create(worktree);
+    await engine.onToolExecuted({ ...readCall("s1", "src/api/a.ts"), tool: "edit" });
 
-    beforeEach(async () => {
-      givenInstructions();
-      engine = create(worktree);
-      await engine.onToolExecuted({ ...readCall("s1", "src/api/a.ts"), tool: "edit" });
-    });
+    // When
+    const context = (await engine.compactionContext("s1")).join("\n");
 
-    describe("when: compaction context를 구하면", () => {
-      it("then: 적용 중이던 지침을 돌려준다", async () => {
-        const context = (await engine.compactionContext("s1")).join("\n");
-
-        expect(context).toContain("API 지침");
-      });
-    });
+    // Then
+    expect(context).toContain("API 지침");
   });
 });

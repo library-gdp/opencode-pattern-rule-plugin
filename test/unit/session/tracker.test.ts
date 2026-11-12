@@ -1,51 +1,54 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { SessionTracker } from "../../../src/session/tracker.js";
 
 // FR-6. 세션 단위 중복 방지 / FR-7. compaction 이후 유지
 describe("SessionTracker", () => {
-  let tracker: SessionTracker;
+  it("세션에서 처음 적용하는 지침을 claim하면 true를 돌려준다", () => {
+    // Given
+    const tracker = new SessionTracker();
 
-  beforeEach(() => {
-    tracker = new SessionTracker();
+    // When
+    const claimed = tracker.claim("s1", "api.md");
+
+    // Then
+    expect(claimed).toBe(true);
   });
 
-  describe("given: 세션 s1에서 api.md를 아직 적용하지 않았다", () => {
-    describe("when: s1에서 api.md를 claim하면", () => {
-      it("then: true를 돌려준다", () => {
-        expect(tracker.claim("s1", "api.md")).toBe(true);
-      });
-    });
+  it("같은 세션에서 이미 claim한 지침을 다시 claim하면 false를 돌려준다", () => {
+    // Given
+    const tracker = new SessionTracker();
+    tracker.claim("s1", "api.md");
+
+    // When
+    const claimed = tracker.claim("s1", "api.md");
+
+    // Then
+    expect(claimed).toBe(false);
   });
 
-  describe("given: 세션 s1에서 api.md를 이미 claim했다", () => {
-    beforeEach(() => {
-      tracker.claim("s1", "api.md");
-    });
+  it("서브에이전트 세션은 별도 세션이라 같은 지침도 claim할 수 있다", () => {
+    // Given
+    const tracker = new SessionTracker();
+    tracker.claim("s1", "api.md");
 
-    describe("when: 같은 세션에서 다시 claim하면", () => {
-      it("then: false를 돌려준다", () => {
-        expect(tracker.claim("s1", "api.md")).toBe(false);
-      });
-    });
+    // When
+    const claimed = tracker.claim("s1-child", "api.md");
 
-    describe("when: 서브에이전트 세션 s1-child에서 claim하면", () => {
-      it("then: 별도 세션이라 true를 돌려준다", () => {
-        expect(tracker.claim("s1-child", "api.md")).toBe(true);
-      });
-    });
+    // Then
+    expect(claimed).toBe(true);
   });
 
-  describe("given: s1에서 api.md, tests.md를, s2에서 other.md를 claim했다", () => {
-    beforeEach(() => {
-      tracker.claim("s1", "api.md");
-      tracker.claim("s1", "tests.md");
-      tracker.claim("s2", "other.md");
-    });
+  it("세션에 적용한 지침을 claim한 순서대로 돌려준다", () => {
+    // Given
+    const tracker = new SessionTracker();
+    tracker.claim("s1", "api.md");
+    tracker.claim("s1", "tests.md");
+    tracker.claim("s2", "other.md");
 
-    describe("when: s1에 적용한 지침을 조회하면", () => {
-      it("then: s1에서 claim한 지침만 순서대로 돌려준다", () => {
-        expect(tracker.applied("s1")).toEqual(["api.md", "tests.md"]);
-      });
-    });
+    // When
+    const applied = tracker.applied("s1");
+
+    // Then
+    expect(applied).toEqual(["api.md", "tests.md"]);
   });
 });
