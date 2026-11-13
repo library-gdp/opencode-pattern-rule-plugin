@@ -10,8 +10,6 @@ export interface Options {
   enabled: boolean;
   /** 전역 지침 위치(`<config>/conditional-instructions/`) 사용 여부 (FR-1) */
   global: boolean;
-  /** 세션 시작 디렉터리 매칭 사용 여부 (FR-5) */
-  sessionStart: boolean;
   /** 지침 하나의 최대 크기(byte) (NFR-3) */
   maxBytes: number;
   /** 매칭 과정 로그 출력 여부 (NFR-5) */
@@ -25,7 +23,6 @@ export interface Options {
 export const DEFAULT_OPTIONS: Readonly<Options> = Object.freeze({
   enabled: true,
   global: true,
-  sessionStart: true,
   maxBytes: 8 * 1024,
   debug: false,
   searchTools: false,
@@ -98,7 +95,7 @@ function readConfigFile(file: string, warnings: string[]): Record<string, unknow
   return undefined;
 }
 
-const BOOLEAN_KEYS = ["enabled", "global", "sessionStart", "debug", "searchTools"] as const;
+const BOOLEAN_KEYS = ["enabled", "global", "debug", "searchTools"] as const;
 
 function applyObject(
   options: Options,
@@ -128,7 +125,6 @@ function applyObject(
 const ENV_BOOLEANS: ReadonlyArray<[string, (typeof BOOLEAN_KEYS)[number], boolean]> = [
   ["DISABLE", "enabled", true],
   ["GLOBAL", "global", false],
-  ["SESSION_START", "sessionStart", false],
   ["DEBUG", "debug", false],
   ["SEARCH_TOOLS", "searchTools", false],
 ];

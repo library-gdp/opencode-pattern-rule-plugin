@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { globBase, matchesGlob } from "../../../src/matching/glob.js";
+import { matchesGlob } from "../../../src/matching/glob.js";
 
 // FR-2. 중괄호 확장과 dot 파일 매칭
 describe("matchesGlob", () => {
@@ -20,20 +20,3 @@ describe("matchesGlob", () => {
   });
 });
 
-// FR-5. glob의 고정 접두부(base)
-describe("globBase", () => {
-  it.each([
-    ["src/api/**/*.ts", "src/api"],
-    ["src/api/handler.ts", "src/api/handler.ts"],
-    ["src/*/index.ts", "src"],
-    ["**/*.ts", ""],
-  ])("glob %s 의 base는 '%s'다", (pattern, expected) => {
-    // Given: pattern
-
-    // When
-    const base = globBase(pattern);
-
-    // Then
-    expect(base).toBe(expected);
-  });
-});

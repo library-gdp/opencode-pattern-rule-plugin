@@ -2,7 +2,7 @@ import type { Plugin, PluginModule } from "@opencode-ai/plugin";
 import { createConditionalInstructions } from "./conditional-instructions.js";
 import { loadOptions, resolveConfigDir } from "./options.js";
 
-const server: Plugin = async ({ client, directory }, pluginOptions) => {
+const server: Plugin = async ({ directory }, pluginOptions) => {
   const { options, warnings } = loadOptions({ pluginOptions });
   for (const warning of warnings) console.warn(`[conditional-instructions] ${warning}`);
   if (!options.enabled) return {};
@@ -12,10 +12,6 @@ const server: Plugin = async ({ client, directory }, pluginOptions) => {
     projectDir: directory,
     configDir: resolveConfigDir(),
     options,
-    sessionDirectory: async (sessionID) => {
-      const { data } = await client.session.get({ path: { id: sessionID } });
-      return data?.directory ?? directory;
-    },
   });
 
   return {

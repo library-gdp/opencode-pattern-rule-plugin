@@ -22,7 +22,6 @@ description: conditional instruction 파일(`.opencode/conditional-instructions/
 ---
 paths:
   - "<glob>"
-sessionStart: true
 ---
 
 # <제목>
@@ -33,8 +32,7 @@ sessionStart: true
 
 | 필드 | 타입 | 기본값 | 설명 |
 |---|---|---|---|
-| `paths` | 문자열 목록 또는 쉼표로 구분한 문자열 | 없음 | 지침을 적용할 파일 glob. 생략하면 세션 시작부터 항상 적용한다. |
-| `sessionStart` | boolean | `true` | `true`면 OpenCode를 실행한 디렉터리가 glob의 고정 접두부(`src/api/**/*.ts` → `src/api`)와 같거나 그 아래일 때 세션 시작부터 적용한다. `false`면 일치하는 파일에 접근할 때만 적용한다. |
+| `paths` | 문자열 목록 또는 쉼표로 구분한 문자열 | 없음 | 지침을 적용할 파일 glob. 지정하면 일치하는 파일에 접근할 때 적용하고, 생략하면 세션 시작부터 항상 적용한다. |
 
 - frontmatter가 없으면 항상 적용 지침이 된다.
 - 다른 필드는 무시한다. 타입이 틀리면 그 파일은 경고와 함께 건너뛴다.
@@ -76,7 +74,6 @@ paths:
 ```markdown
 ---
 paths: "**/*.{test,spec}.{ts,tsx}"
-sessionStart: false
 ---
 
 # 테스트 지침

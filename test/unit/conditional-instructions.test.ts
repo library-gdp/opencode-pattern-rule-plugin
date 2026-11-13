@@ -36,12 +36,11 @@ function writeApiAndAlwaysInstructions(): void {
   writeInstruction("always.md", "항상 지침");
 }
 
-function create(sessionDirectory: string) {
+function create() {
   return createConditionalInstructions({
     projectDir,
     configDir,
     options: { ...DEFAULT_OPTIONS, customTools: {} },
-    sessionDirectory: async () => sessionDirectory,
   });
 }
 
@@ -54,7 +53,7 @@ describe("onToolExecuted", () => {
   it("접근한 파일과 일치하는 지침을 지침을 켠 파일 경로와 함께 돌려준다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(projectDir);
+    const engine = create();
 
     // When
     const appended = await engine.onToolExecuted(readCall("s1", "src/api/users.ts"));
@@ -68,7 +67,7 @@ describe("onToolExecuted", () => {
   it("같은 세션에서 이미 넣은 지침은 다시 넣지 않는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(projectDir);
+    const engine = create();
     await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
     // When
@@ -80,11 +79,11 @@ describe("onToolExecuted", () => {
 });
 
 describe("systemInstructions", () => {
-  // FR-4
-  it("프로젝트 디렉터리에서 시작한 세션에는 항상 적용 지침만 넣는다", async () => {
+  // FR-4 + FR-3
+  it("세션 시작 시에는 paths가 없는 지침만 넣고 paths가 있는 지침은 넣지 않는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(projectDir);
+    const engine = create();
 
     // When
     const system = (await engine.systemInstructions("s1")).join("\n");
@@ -94,31 +93,19 @@ describe("systemInstructions", () => {
     expect(system).not.toContain("API 지침");
   });
 
-  // FR-5
-  it("src/api에서 시작한 세션에는 그 디렉터리를 대상으로 하는 지침도 넣는다", async () => {
+  // FR-3 + NFR-1
+  it("paths가 있는 지침은 일치하는 파일에 접근할 때 넣고 system 지침은 바뀌지 않는다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(path.join(projectDir, "src/api"));
-
-    // When
-    const system = (await engine.systemInstructions("s1")).join("\n");
-
-    // Then
-    expect(system).toContain("API 지침");
-  });
-
-  // FR-6 + NFR-1
-  it("세션 시작 시 넣은 지침은 파일 접근 때 다시 넣지 않고 system 지침도 바뀌지 않는다", async () => {
-    // Given
-    writeApiAndAlwaysInstructions();
-    const engine = create(path.join(projectDir, "src/api"));
+    const engine = create();
     const before = await engine.systemInstructions("s1");
 
     // When
     const appended = await engine.onToolExecuted(readCall("s1", "src/api/a.ts"));
 
     // Then
-    expect(appended).toBe("");
+    expect(appended).toContain("API 지침");
+    expect(appended).not.toContain("항상 지침");
     expect(await engine.systemInstructions("s1")).toEqual(before);
   });
 });
@@ -128,7 +115,7 @@ describe("compactionContext", () => {
   it("세션에서 파일 접근으로 넣은 지침을 compaction context로 돌려준다", async () => {
     // Given
     writeApiAndAlwaysInstructions();
-    const engine = create(projectDir);
+    const engine = create();
     await engine.onToolExecuted({ ...readCall("s1", "src/api/a.ts"), tool: "edit" });
 
     // When
