@@ -5,7 +5,6 @@ import { renderInstruction } from "../../../src/instruction/render.js";
 const apiInstruction: Instruction = {
   source: ".opencode/conditional-instructions/api.md",
   paths: ["src/api/**/*.ts"],
-  sessionStart: true,
   body: "# API 지침\n- 모든 handler는 zod로 입력을 검증한다.",
 };
 
