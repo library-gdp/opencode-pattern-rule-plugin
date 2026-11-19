@@ -56,7 +56,6 @@ Markdown 파일 상단의 frontmatter에 적용 조건을 적고, 본문에 지�
 paths:
   - "src/api/**/*.ts"
   - "src/**/*.{test,spec}.ts"
-sessionStart: true
 ---
 
 # API 지침
@@ -66,9 +65,17 @@ sessionStart: true
 | 필드 | 설명 |
 |---|---|
 | `paths` | 지침을 적용할 파일의 glob 목록. YAML list 또는 쉼표로 구분한 문자열로 적습니다. `{ts,tsx}` 같은 중괄호 확장과 dot 파일 매칭을 지원합니다. 생략하면 세션 시작부터 항상 적용합니다. |
-| `sessionStart` | `true`(기본값)이면 OpenCode를 실행한 디렉터리가 glob의 고정 접두부(예: `src/api/**/*.ts`의 `src/api`)와 같거나 그 아래일 때 세션 시작부터 지침을 적용합니다. `false`이면 파일에 접근할 때만 적용합니다. |
 
 ### 적용 시점
+
+Claude Code의 `.claude/rules/`와 같이 `paths` 유무에 따라 적용 시점이 다릅니다.
+
+| 지침 | 적용 시점 | 넣는 위치 |
+|---|---|---|
+| `paths`가 없는 지침 | 세션 시작 시 | system prompt |
+| `paths`가 있는 지침 | 일치하는 파일에 처음 접근할 때 | 그 도구 결과 뒤 |
+
+`paths`가 있는 지침은 OpenCode를 어느 디렉터리에서 실행했든 세션 시작 시에는 넣지 않습니다.
 
 - `read`, `edit`, `write`, `patch` 도구로 파일에 접근하거나 `bash`에서 `cat`, `head` 등으로 파일을 읽으면, 그 경로와 일치하는 지침을 넣습니다.
 - 같은 지침은 한 세션에 한 번만 넣습니다.

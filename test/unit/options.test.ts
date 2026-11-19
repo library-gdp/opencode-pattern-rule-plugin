@@ -44,13 +44,13 @@ describe("loadOptions", () => {
   });
 
   it("우선순위는 환경변수 > plugin 옵션 > 설정 파일이다", () => {
-    writeConfig({ debug: true, sessionStart: false, maxBytes: 100 });
+    writeConfig({ debug: true, searchTools: false, maxBytes: 100 });
     const { options } = loadOptions({
       configDir,
-      pluginOptions: { sessionStart: true, maxBytes: 200 },
+      pluginOptions: { searchTools: true, maxBytes: 200 },
       env: { CONDITIONAL_INSTRUCTIONS_MAX_BYTES: "300" },
     });
-    expect(options).toMatchObject({ debug: true, sessionStart: true, maxBytes: 300 });
+    expect(options).toMatchObject({ debug: true, searchTools: true, maxBytes: 300 });
   });
 
   it("DISABLE 환경변수는 enabled를 뒤집는다", () => {

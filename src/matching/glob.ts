@@ -11,8 +11,3 @@ export function matchesGlob(pattern: string, file: string): boolean {
   }
   return matcher(file);
 }
-
-/** glob의 고정 접두부. 예: `src/api/**\/*.ts` → `src/api`, `**\/*.ts` → `""` (FR-5) */
-export function globBase(pattern: string): string {
-  return picomatch.scan(pattern).base;
-}

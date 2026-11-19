@@ -1,8 +1,7 @@
-import path from "node:path";
 import { loadInstructions } from "./instruction/load.js";
 import type { Instruction } from "./instruction/parse.js";
 import { renderInstruction } from "./instruction/render.js";
-import { selectAlwaysApplied, selectForFile, selectForSessionStart } from "./matching/select.js";
+import { selectAlwaysApplied, selectForFile } from "./matching/select.js";
 import type { Options } from "./options.js";
 import { SessionTracker } from "./session/tracker.js";
 import { extractToolPaths } from "./tool/extract-paths.js";
@@ -13,8 +12,6 @@ export interface ConditionalInstructionsInput {
   /** OpenCode user scope 설정 디렉터리 */
   configDir: string;
   options: Options;
-  /** 세션의 작업 디렉터리(절대 경로)를 구합니다. */
-  sessionDirectory: (sessionID: string) => Promise<string>;
   /** 경고와 디버그 로그 출력. 기본은 console.warn */
   log?: (message: string) => void;
 }
@@ -28,7 +25,10 @@ export interface ToolExecution {
 export interface ConditionalInstructions {
   /** `tool.execute.after`: 도구 결과 뒤에 덧붙일 텍스트. 넣을 지침이 없으면 `""` */
   onToolExecuted(execution: ToolExecution): Promise<string>;
-  /** `experimental.chat.system.transform`: system에 넣을 지침. 세션마다 처음 구한 값을 계속 돌려줍니다 (NFR-1). */
+  /**
+   * `experimental.chat.system.transform`: system에 넣을 `paths` 없는 지침 (FR-4).
+   * `paths`가 있는 지침은 넣지 않습니다. 세션마다 처음 구한 값을 계속 돌려줍니다 (NFR-1).
+   */
   systemInstructions(sessionID: string): Promise<string[]>;
   /** `experimental.session.compacting`: 도구 결과로 넣었던 지침을 요약에 남깁니다 (FR-7). */
   compactionContext(sessionID: string): Promise<string[]>;
@@ -62,22 +62,11 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
   }
 
   async function computeSystem(sessionID: string): Promise<string[]> {
-    const instructions = await load();
     const texts: string[] = [];
-
-    for (const instruction of selectAlwaysApplied(instructions)) {
-      if (tracker.claim(sessionID, instruction.source)) texts.push(render(instruction));
-    }
-
-    if (options.sessionStart) {
-      const directory = toProjectRelative(projectDir, await input.sessionDirectory(sessionID));
-      if (directory !== undefined) {
-        for (const instruction of selectForSessionStart(instructions, directory)) {
-          if (!tracker.claim(sessionID, instruction.source)) continue;
-          debug(`${sessionID}: 세션 디렉터리 "${directory}"로 ${instruction.source} 적용`);
-          texts.push(render(instruction, directory));
-        }
-      }
+    for (const instruction of selectAlwaysApplied(await load())) {
+      if (!tracker.claim(sessionID, instruction.source)) continue;
+      debug(`${sessionID}: 세션 시작 시 ${instruction.source} 적용`);
+      texts.push(render(instruction));
     }
     return texts;
   }
@@ -124,11 +113,4 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
       injectedBySession.delete(sessionID);
     },
   };
-}
-
-/** 프로젝트 디렉터리 기준 상대 경로(루트는 `""`). 프로젝트 디렉터리 밖이면 undefined */
-function toProjectRelative(projectDir: string, directory: string): string | undefined {
-  const relative = path.relative(projectDir, path.resolve(projectDir, directory));
-  if (relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
-  return relative.split(path.sep).join("/");
 }

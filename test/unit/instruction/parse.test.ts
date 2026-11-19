@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { parseInstruction } from "../../../src/instruction/parse.js";
 
-// FR-2. 지침 파일 형식: frontmatter(paths, sessionStart) + 본문
+// FR-2. 지침 파일 형식: frontmatter(paths) + 본문
 describe("parseInstruction", () => {
-  it("YAML 목록으로 적은 paths와 본문을 읽고 sessionStart는 기본값 true로 둔다", () => {
+  it("YAML 목록으로 적은 paths와 본문을 읽는다", () => {
     // Given
     const source = ".opencode/conditional-instructions/api.md";
     const text = [
@@ -24,7 +24,6 @@ describe("parseInstruction", () => {
     expect(instruction).toEqual({
       source,
       paths: ["src/api/**/*.ts", "src/**/*.{test,spec}.ts"],
-      sessionStart: true,
       body: "# API 지침\n- 모든 handler는 zod로 입력을 검증한다.",
     });
   });
@@ -40,15 +39,15 @@ describe("parseInstruction", () => {
     expect(instruction.paths).toEqual(["src/a/**", "src/b/**"]);
   });
 
-  it("sessionStart: false를 읽는다", () => {
+  it("paths 외의 필드는 무시한다", () => {
     // Given
-    const text = '---\npaths: ["src/**"]\nsessionStart: false\n---\n본문';
+    const text = '---\npaths: ["src/**"]\nsessionStart: true\n---\n본문';
 
     // When
     const instruction = parseInstruction({ source: "a.md", text });
 
     // Then
-    expect(instruction.sessionStart).toBe(false);
+    expect(instruction).toEqual({ source: "a.md", paths: ["src/**"], body: "본문" });
   });
 
   it("frontmatter가 없으면 paths가 빈 항상 적용 지침이 된다", () => {
@@ -59,6 +58,6 @@ describe("parseInstruction", () => {
     const instruction = parseInstruction({ source: "always.md", text });
 
     // Then
-    expect(instruction).toEqual({ source: "always.md", paths: [], sessionStart: true, body: "# 항상 지침" });
+    expect(instruction).toEqual({ source: "always.md", paths: [], body: "# 항상 지침" });
   });
 });
