@@ -33,11 +33,36 @@ export function parseInstruction({ source, text }: ParseInstructionInput): Instr
 
 function parsePaths(value: unknown, source: string): string[] {
   if (value === undefined || value === null) return [];
-  const items = typeof value === "string" ? value.split(",") : value;
+  const items = typeof value === "string" ? splitTopLevelCommas(value) : value;
   if (!Array.isArray(items) || !items.every((item) => typeof item === "string")) {
     throw new Error(`${source}: "paths"는 문자열 목록이거나 쉼표로 구분한 문자열이어야 합니다`);
   }
   return items.map((item) => item.trim()).filter((item) => item !== "");
+}
+
+/**
+ * 중괄호 밖의 쉼표에서만 나눕니다. `{test,spec}` 같은 중괄호 확장 안의 쉼표는 glob의 일부입니다.
+ * `\`로 이스케이프한 문자는 구분자나 중괄호로 취급하지 않습니다.
+ */
+function splitTopLevelCommas(value: string): string[] {
+  const items: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    if (char === "\\") {
+      i++;
+    } else if (char === "{") {
+      depth++;
+    } else if (char === "}" && depth > 0) {
+      depth--;
+    } else if (char === "," && depth === 0) {
+      items.push(value.slice(start, i));
+      start = i + 1;
+    }
+  }
+  items.push(value.slice(start));
+  return items;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
