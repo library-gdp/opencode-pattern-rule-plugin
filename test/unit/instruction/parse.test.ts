@@ -39,6 +39,39 @@ describe("parseInstruction", () => {
     expect(instruction.paths).toEqual(["src/a/**", "src/b/**"]);
   });
 
+  it("쉼표로 구분한 문자열 paths에서 중괄호 안의 쉼표는 나누지 않는다", () => {
+    // Given
+    const text = '---\npaths: "src/api/**/*.ts, src/**/*.{test,spec}.ts"\n---\n본문';
+
+    // When
+    const instruction = parseInstruction({ source: "a.md", text });
+
+    // Then
+    expect(instruction.paths).toEqual(["src/api/**/*.ts", "src/**/*.{test,spec}.ts"]);
+  });
+
+  it("중괄호가 하나뿐인 문자열 paths를 하나의 glob으로 읽는다", () => {
+    // Given
+    const text = '---\npaths: "**/*.{test,spec}.{ts,tsx}"\n---\n본문';
+
+    // When
+    const instruction = parseInstruction({ source: "a.md", text });
+
+    // Then
+    expect(instruction.paths).toEqual(["**/*.{test,spec}.{ts,tsx}"]);
+  });
+
+  it("중첩된 중괄호 안의 쉼표도 나누지 않는다", () => {
+    // Given
+    const text = '---\npaths: "src/{a,{b,c}}/**, docs/**"\n---\n본문';
+
+    // When
+    const instruction = parseInstruction({ source: "a.md", text });
+
+    // Then
+    expect(instruction.paths).toEqual(["src/{a,{b,c}}/**", "docs/**"]);
+  });
+
   it("paths 외의 필드는 무시한다", () => {
     // Given
     const text = '---\npaths: ["src/**"]\nsessionStart: true\n---\n본문';
