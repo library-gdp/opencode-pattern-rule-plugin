@@ -1,5 +1,5 @@
-import path from "node:path";
 import type { Options } from "../options.js";
+import { pathApiFor, toSlash } from "../path-style.js";
 
 export interface ToolCall {
   tool: string;
@@ -20,8 +20,8 @@ const READ_COMMANDS = new Set(["cat", "head", "tail", "less", "more", "bat"]);
 const OPTIONS_WITH_VALUE = new Set(["-n", "-c"]);
 
 /**
- * 도구 호출이 접근한 파일 경로를 프로젝트 디렉터리 기준 상대 경로(`/` 구분)로 돌려줍니다 (FR-3).
- * 프로젝트 디렉터리 밖의 경로는 버립니다.
+ * 도구 호출이 접근한 파일 경로를 돌려줍니다 (FR-3). 구분자는 `/`입니다.
+ * 프로젝트 디렉터리 안의 파일은 프로젝트 디렉터리 기준 상대 경로로, 밖의 파일은 절대 경로로 돌려줍니다.
  */
 export function extractToolPaths(call: ToolCall, { projectDir, options }: ExtractToolPathsContext): string[] {
   const args = isRecord(call.args) ? call.args : {};
@@ -37,8 +37,8 @@ export function extractToolPaths(call: ToolCall, { projectDir, options }: Extrac
   const result: string[] = [];
   for (const value of raw) {
     if (typeof value !== "string" || value === "") continue;
-    const relative = toProjectRelative(projectDir, value);
-    if (relative !== undefined && !result.includes(relative)) result.push(relative);
+    const file = toDisplayPath(projectDir, value);
+    if (file !== undefined && !result.includes(file)) result.push(file);
   }
   return result;
 }
@@ -68,10 +68,14 @@ function bashReadTarget(command: unknown): string | undefined {
   return operands.length === 1 ? operands[0] : undefined;
 }
 
-function toProjectRelative(projectDir: string, file: string): string | undefined {
-  const relative = path.relative(projectDir, path.resolve(projectDir, file));
-  if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
-  return relative.split(path.sep).join("/");
+/** 프로젝트 디렉터리의 형식(Windows/Linux)에 맞춰 경로를 해석합니다. */
+function toDisplayPath(projectDir: string, file: string): string | undefined {
+  const api = pathApiFor(projectDir);
+  const absolute = api.resolve(projectDir, file);
+  const relative = api.relative(projectDir, absolute);
+  if (relative === "") return undefined;
+  const outside = relative === ".." || relative.startsWith(`..${api.sep}`) || api.isAbsolute(relative);
+  return toSlash(outside ? absolute : relative);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

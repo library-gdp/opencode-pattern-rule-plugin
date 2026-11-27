@@ -18,6 +18,46 @@ describe("extractToolPaths", () => {
     expect(paths).toEqual(["src/a.ts"]);
   });
 
+  it("프로젝트 디렉터리 밖의 파일은 절대 경로로 돌려준다", () => {
+    // Given
+    const call = { tool: "read", args: { filePath: "/etc/nginx/nginx.conf" } };
+
+    // When
+    const paths = extractToolPaths(call, { projectDir, options: defaultOptions });
+
+    // Then
+    expect(paths).toEqual(["/etc/nginx/nginx.conf"]);
+  });
+
+  it("상대 경로로 프로젝트 디렉터리 밖을 가리키면 절대 경로로 돌려준다", () => {
+    // Given
+    const call = { tool: "read", args: { filePath: "../other/a.ts" } };
+
+    // When
+    const paths = extractToolPaths(call, { projectDir, options: defaultOptions });
+
+    // Then
+    expect(paths).toEqual(["/other/a.ts"]);
+  });
+
+  it.each([
+    ["C:\\repo\\src\\a.ts", "src/a.ts"],
+    ["C:/repo/src/a.ts", "src/a.ts"],
+    ["c:\\Repo\\src\\a.ts", "src/a.ts"],
+    ["src\\a.ts", "src/a.ts"],
+    ["D:\\notes\\todo.md", "D:/notes/todo.md"],
+    ["\\\\server\\share\\a.md", "//server/share/a.md"],
+  ])("Windows 프로젝트에서 %s 는 %s 로 돌려준다", (filePath, expected) => {
+    // Given
+    const call = { tool: "read", args: { filePath } };
+
+    // When
+    const paths = extractToolPaths(call, { projectDir: "C:\\repo", options: defaultOptions });
+
+    // Then
+    expect(paths).toEqual([expected]);
+  });
+
   it("apply_patch 도구는 패치에 포함된 모든 파일을 돌려준다", () => {
     // Given
     const patchText = [

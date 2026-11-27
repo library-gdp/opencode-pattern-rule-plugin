@@ -45,7 +45,15 @@ OpenCode에는 이 기능이 없습니다. `opencode.json`의 `instructions`에 
 | `<OpenCode를 실행한 디렉터리>/.opencode/conditional-instructions/**/*.md` | 프로젝트 |
 | `~/.config/opencode/conditional-instructions/**/*.md` | 전역 |
 
-`paths`는 두 위치 모두 OpenCode를 실행한 디렉터리 기준 상대 경로로 매칭합니다. git 저장소 여부는 관계없습니다.
+`paths`의 상대 경로 패턴은 두 위치 모두 OpenCode를 실행한 디렉터리 기준 상대 경로로 매칭합니다. git 저장소 여부는 관계없습니다. 절대 경로 패턴은 파일의 절대 경로로 매칭하므로 OpenCode를 실행한 디렉터리 밖의 파일에도 적용됩니다. 패턴 형식에 따라 다음과 같이 처리합니다.
+
+| 형식 | 예 | 처리 |
+|---|---|---|
+| Linux | `/etc/nginx/**/*.conf` | 대소문자를 구분합니다. `\`는 glob escape입니다. |
+| Windows | `C:\Users\me\notes\**`, `C:/Users/me/notes/**`, `\\server\share\**` | `\`와 `/`를 모두 구분자로 보고, 대소문자를 구분하지 않습니다. |
+| 홈 디렉터리 | `~/.config/**` (Windows는 `~\.config\**`도 가능) | 홈 디렉터리로 펼친 뒤 그 형식에 따릅니다. |
+
+YAML 큰따옴표 문자열에서는 `\`를 `\\`로 적어야 하므로 Windows 경로는 작은따옴표(`'C:\Users\**'`)나 `/` 구분자로 적는 편이 편합니다.
 
 ### 파일 형식
 

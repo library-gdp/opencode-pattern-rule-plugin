@@ -80,7 +80,7 @@ export function createConditionalInstructions(input: ConditionalInstructionsInpu
       const instructions = await load();
       const texts: string[] = [];
       for (const file of files) {
-        for (const instruction of selectForFile(instructions, file)) {
+        for (const instruction of selectForFile(instructions, file, projectDir)) {
           if (!tracker.claim(sessionID, instruction.source)) continue;
           debug(`${sessionID}: ${file}로 ${instruction.source} 적용`);
           texts.push(render(instruction, file));
