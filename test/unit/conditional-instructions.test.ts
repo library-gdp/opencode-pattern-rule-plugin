@@ -63,6 +63,27 @@ describe("onToolExecuted", () => {
     expect(appended).toContain("src/api/users.ts");
   });
 
+  // FR-3
+  it("절대 경로 패턴은 프로젝트 디렉터리 밖의 파일에 접근할 때도 적용한다", async () => {
+    // Given
+    const outsideDir = mkdtempSync(path.join(tmpdir(), "ci-outside-"));
+    const outsideFile = path.join(outsideDir, "notes/todo.md");
+    const pattern = `${outsideDir.split(path.sep).join("/")}/**/*.md`;
+    writeInstruction("outside.md", `---\npaths:\n  - "${pattern}"\n---\n밖 지침`);
+    const engine = create();
+
+    try {
+      // When
+      const appended = await engine.onToolExecuted({ sessionID: "s1", tool: "read", args: { filePath: outsideFile } });
+
+      // Then
+      expect(appended).toContain("밖 지침");
+      expect(appended).toContain(outsideFile.split(path.sep).join("/"));
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
   // FR-6
   it("같은 세션에서 이미 넣은 지침은 다시 넣지 않는다", async () => {
     // Given

@@ -13,7 +13,11 @@ description: conditional instruction 파일(`.opencode/conditional-instructions/
 | 유저 | `~/.config/opencode/conditional-instructions/` (`$XDG_CONFIG_HOME`이 있으면 `$XDG_CONFIG_HOME/opencode/conditional-instructions/`) |
 
 - 디렉터리 아래 모든 `.md` 파일을 읽는다. 하위 디렉터리를 써도 된다.
-- 두 scope 모두 `paths`는 **OpenCode를 실행한 디렉터리 기준 상대 경로**로 매칭한다. git 저장소 여부는 관계없다.
+- 두 scope 모두 `paths`의 상대 경로 패턴은 **OpenCode를 실행한 디렉터리 기준 상대 경로**로 매칭한다. git 저장소 여부는 관계없다.
+- 절대 경로 패턴은 파일의 절대 경로로 매칭한다. OpenCode를 실행한 디렉터리 밖의 파일에도 적용된다.
+  - Linux: `/etc/nginx/**/*.conf`. 대소문자를 구분하고 `\`는 glob escape다.
+  - Windows: `C:\Users\me\**`, `C:/Users/me/**`, `\\server\share\**`. `\`와 `/`를 모두 구분자로 보고 대소문자를 구분하지 않는다. YAML에서는 작은따옴표로 감싸거나 `/`를 쓴다 (큰따옴표 안에서는 `\`를 `\\`로 적어야 한다).
+  - 홈 디렉터리: `~/.config/**` (Windows는 `~\.config\**`도 가능).
 - 유저 scope는 플러그인 옵션 `global: false`(또는 `CONDITIONAL_INSTRUCTIONS_GLOBAL=false`)이면 읽지 않는다.
 
 ## 템플릿
